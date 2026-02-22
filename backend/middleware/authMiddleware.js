@@ -14,6 +14,11 @@ const protect = async (req, res, next) => {
       req.user = await User.findByPk(decoded.id, {
         attributes: { exclude: ['password'] }
       });
+
+      if (!req.user) {
+        return res.status(401).json({ message: 'User no longer exists' });
+      }
+
       next();
     } catch (error) {
       res.status(401).json({ message: 'Not authorized, token failed' });

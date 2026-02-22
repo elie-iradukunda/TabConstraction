@@ -65,30 +65,40 @@ const getListing = async (req, res) => {
 
 const createListing = async (req, res) => {
   try {
-    const { category } = req.body;
     const userRole = req.user.role;
-    const userStatus = req.user.status;
 
     // Restriction: Only Admin and Manager can add construction materials
-    if (category === 'material' && !['admin', 'manager'].includes(userRole)) {
+    if (req.body.category === 'material' && !['admin', 'manager'].includes(userRole)) {
       return res.status(403).json({ message: 'Only Admins and Managers can list construction materials.' });
     }
 
-    // Role Workflow: Landlords must be approved to list anything
-    if (userRole === 'landlord' && userStatus !== 'active') {
-      return res.status(403).json({ message: 'Your landlord account is pending approval.' });
+    // Parse features if sent as JSON string from FormData
+    let features = [];
+    if (req.body.features && typeof req.body.features === 'string') {
+      try { features = JSON.parse(req.body.features); } catch (e) { features = []; }
+    } else if (Array.isArray(req.body.features)) {
+      features = req.body.features;
     }
 
-    req.body.userId = req.user.id;
-    
-    // Auto-approve if created by admin/manager, otherwise default to pending (which is default in model anyway)
-    if (['admin', 'manager'].includes(userRole)) {
-      req.body.status = 'active';
-    } else {
-      req.body.status = 'pending';
-    }
+    // Explicitly pick only model-known fields to avoid Sequelize errors from stray FormData keys
+    const listingData = {
+      title:        req.body.title,
+      description:  req.body.description,
+      price:        parseFloat(req.body.price),
+      location:     req.body.location,
+      type:         req.body.type,
+      category:     req.body.category,
+      propertyType: req.body.propertyType || null,
+      bedrooms:     parseInt(req.body.bedrooms) || 0,
+      bathrooms:    parseInt(req.body.bathrooms) || 0,
+      size:         req.body.size || null,
+      mapLink:      req.body.mapLink || null,
+      features,
+      userId:       req.user.id,
+      status:       ['admin', 'manager'].includes(userRole) ? 'active' : 'pending',
+    };
 
-    const listing = await Listing.create(req.body);
+    const listing = await Listing.create(listingData);
 
     if (req.files && req.files.length > 0) {
       const images = req.files.map(file => ({
@@ -104,7 +114,9 @@ const createListing = async (req, res) => {
 
     res.status(201).json({ success: true, listing: createdListing });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    const msg = error?.message || error?.original?.message || JSON.stringify(error);
+    console.error('Create listing error:', msg, error?.original || '');
+    res.status(500).json({ message: msg });
   }
 };
 
@@ -178,7 +190,7 @@ const getAdminListings = async (req, res) => {
     const listings = await Listing.findAll({
       include: [
         { model: Image, as: 'images' },
-        { model: User, as: 'owner', attributes: ['name', 'email'] }
+        { model: User, as: 'owner', attributes: ['name', 'email', 'phone'] }
       ],
       order: [['createdAt', 'DESC']]
     });
@@ -203,6 +215,60 @@ const updateListingStatus = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+const getDashboardStats = async (req, res) => {
+  try {
+    const { Op } = require('sequelize');
+    const User = require('../models/User');
+
+    // Listing counts
+    const totalListings = await Listing.count();
+    const activeListings = await Listing.count({ where: { status: 'active' } });
+    const pendingListings = await Listing.count({ where: { status: 'pending' } });
+
+    // By category
+    const houses = await Listing.count({ where: { category: 'house' } });
+    const land = await Listing.count({ where: { category: 'land' } });
+    const materials = await Listing.count({ where: { category: 'material' } });
+
+    // By type
+    const forSale = await Listing.count({ where: { type: 'sale' } });
+    const forRent = await Listing.count({ where: { type: 'rent' } });
+
+    // User counts
+    const totalUsers = await User.count();
+    const admins = await User.count({ where: { role: 'admin' } });
+    const managers = await User.count({ where: { role: 'manager' } });
+    const landlords = await User.count({ where: { role: 'landlord' } });
+    const normalUsers = await User.count({ where: { role: 'user' } });
+    const pendingUsers = await User.count({ where: { status: 'pending' } });
+
+    // Recent listings (last 5)
+    const recentListings = await Listing.findAll({
+      include: [{ model: User, as: 'owner', attributes: ['name'] }],
+      order: [['createdAt', 'DESC']],
+      limit: 5
+    });
+
+    // Recent users (last 5)
+    const recentUsers = await User.findAll({
+      attributes: { exclude: ['password'] },
+      order: [['createdAt', 'DESC']],
+      limit: 5
+    });
+
+    res.json({
+      success: true,
+      stats: {
+        listings: { total: totalListings, active: activeListings, pending: pendingListings, houses, land, materials, forSale, forRent },
+        users: { total: totalUsers, admins, managers, landlords, normalUsers, pending: pendingUsers },
+        recentListings,
+        recentUsers
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 module.exports = {
   getListings,
@@ -212,5 +278,6 @@ module.exports = {
   deleteListing,
   getMyListings,
   getAdminListings,
-  updateListingStatus
+  updateListingStatus,
+  getDashboardStats
 };

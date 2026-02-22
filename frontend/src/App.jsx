@@ -14,6 +14,7 @@ import DashboardLayout from './layouts/DashboardLayout';
 import DashboardOverview from './pages/DashboardOverview';
 import MyListings from './pages/MyListings';
 import AddListingPage from './pages/AddListingPage';
+import EditListingPage from './pages/EditListingPage';
 import Favorites from './pages/Favorites';
 import ProfileSettings from './pages/ProfileSettings';
 
@@ -61,6 +62,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['admin', 'manager', 'landlord']}>
                 <AddListingPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="edit-listing/:id" 
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'manager', 'landlord']}>
+                <EditListingPage />
               </ProtectedRoute>
             } 
           />

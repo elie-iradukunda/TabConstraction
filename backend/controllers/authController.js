@@ -3,7 +3,7 @@ const User = require('../models/User');
 
 const register = async (req, res) => {
   try {
-    const { name, email, password, phone, role } = req.body;
+    const { name, email, password, phone, role, nationalId, address } = req.body;
 
     const userExists = await User.findOne({ where: { email } });
     if (userExists) {
@@ -16,8 +16,19 @@ const register = async (req, res) => {
       password,
       phone,
       role: role || 'user',
-      status: role === 'landlord' ? 'pending' : 'active'
+      status: role === 'landlord' ? 'pending' : 'active',
+      nationalId: role === 'landlord' ? nationalId : null,
+      address: role === 'landlord' ? address : null
     });
+
+    // If landlord, don't log them in — show pending message
+    if (role === 'landlord') {
+      return res.status(201).json({
+        success: true,
+        pendingApproval: true,
+        message: 'Your landlord account has been created and is pending approval. You will be notified once an admin reviews your account.'
+      });
+    }
 
     const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
       expiresIn: process.env.JWT_EXPIRE
@@ -31,7 +42,8 @@ const register = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        phone: user.phone
+        phone: user.phone,
+        status: user.status
       }
     });
   } catch (error) {
@@ -45,25 +57,50 @@ const login = async (req, res) => {
 
     const user = await User.findOne({ where: { email } });
 
-    if (user && (await user.matchPassword(password))) {
-      const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
-        expiresIn: process.env.JWT_EXPIRE
-      });
-
-      res.json({
-        success: true,
-        token,
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          phone: user.phone
-        }
-      });
-    } else {
-      res.status(401).json({ message: 'Invalid email or password' });
+    if (!user || !(await user.matchPassword(password))) {
+      return res.status(401).json({ message: 'Invalid email or password' });
     }
+
+    // Block pending accounts
+    if (user.status === 'pending') {
+      return res.status(403).json({
+        message: 'Your account is still pending approval. Please contact the admin at admin@tabiconst.com or call +250 788 000 000 to speed up the process.',
+        pendingApproval: true
+      });
+    }
+
+    // Block suspended accounts
+    if (user.status === 'suspended') {
+      return res.status(403).json({
+        message: 'Your account has been suspended. Please contact support at admin@tabiconst.com for assistance.',
+        suspended: true
+      });
+    }
+
+    // Block rejected accounts
+    if (user.status === 'rejected') {
+      return res.status(403).json({
+        message: 'Your account application was rejected. Please contact admin@tabiconst.com for more information.',
+        rejected: true
+      });
+    }
+
+    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRE
+    });
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        phone: user.phone,
+        status: user.status
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

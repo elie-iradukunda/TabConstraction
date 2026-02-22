@@ -26,6 +26,11 @@ export const useAuthStore = create((set) => ({
     set({ loading: true, error: null });
     try {
       const data = await authService.register(userData);
+      // Landlord registration → pending, don't log in
+      if (data.pendingApproval) {
+        set({ loading: false });
+        return data;
+      }
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       set({ user: data.user, token: data.token, isAuthenticated: true, loading: false });

@@ -41,4 +41,8 @@ export const listingService = {
     const response = await api.patch(`/listings/${id}/status`, { status });
     return response.data;
   },
+  getDashboardStats: async () => {
+    const response = await api.get('/listings/stats');
+    return response.data;
+  },
 };

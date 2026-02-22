@@ -2,17 +2,23 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Home, Layers, Hammer, MapPin, ChevronRight, Sparkles } from 'lucide-react';
 import { useListingStore } from '../store/listingStore';
+import { useAuthStore } from '../store/authStore';
 import MainLayout from '../layouts/MainLayout';
 import ListingCard from '../components/ListingCard';
 
 const HomePage = () => {
   const navigate = useNavigate();
   const { listings, fetchListings } = useListingStore();
+  const { isAuthenticated } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+      return;
+    }
     fetchListings({ limit: 4 });
-  }, []);
+  }, [isAuthenticated]);
 
   const handleSearch = (e) => {
     e.preventDefault();

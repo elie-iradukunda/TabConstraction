@@ -35,6 +35,19 @@ const User = sequelize.define('User', {
   status: {
     type: DataTypes.ENUM('pending', 'active', 'suspended', 'rejected'),
     defaultValue: 'active'
+  },
+  nationalId: {
+    type: DataTypes.STRING,
+    allowNull: true // Only required for landlords
+  },
+  address: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  verificationDocs: {
+    type: DataTypes.JSON, // To store document URLs or structured info
+    allowNull: true,
+    defaultValue: []
   }
 }, {
   hooks: {

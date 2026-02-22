@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MapPin, Bed, Bath, Move, Share2, Heart, Phone, Mail, User, ChevronLeft, ChevronRight, Calendar, Tag } from 'lucide-react';
+import { MapPin, Bed, Bath, Move, Share2, Heart, Phone, Mail, User, ChevronLeft, ChevronRight, Calendar, Tag, ExternalLink } from 'lucide-react';
 import { useListingStore } from '../store/listingStore';
 import MainLayout from '../layouts/MainLayout';
 
@@ -92,12 +92,12 @@ const ListingDetailsPage = () => {
             )}
           </div>
           
-          <div className="flex flex-row lg:flex-col gap-4 overflow-x-auto lg:overflow-y-auto max-h-[500px] scrollbar-hide">
+          <div className="flex flex-row lg:flex-col gap-3 overflow-x-auto lg:overflow-y-auto max-h-[500px] pb-2 lg:pb-0 scrollbar-hide">
             {allImages.map((img, idx) => (
-              <button 
+              <button
                 key={idx}
                 onClick={() => setActiveImage(idx)}
-                className={`relative flex-shrink-0 w-32 lg:w-full aspect-video rounded-2xl overflow-hidden border-2 transition-all ${activeImage === idx ? 'border-primary shadow-lg ring-2 ring-primary/20' : 'border-transparent opacity-70 hover:opacity-100'}`}
+                className={`relative flex-shrink-0 w-24 lg:w-full aspect-video rounded-xl overflow-hidden border-2 transition-all ${activeImage === idx ? 'border-primary shadow-lg ring-2 ring-primary/20' : 'border-transparent opacity-70 hover:opacity-100'}`}
               >
                 <img src={img} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover" />
               </button>
@@ -105,7 +105,7 @@ const ListingDetailsPage = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Info */}
           <div className="lg:col-span-2">
             <div className="mb-8">
@@ -117,12 +117,37 @@ const ListingDetailsPage = () => {
                   {category.toUpperCase()}
                 </span>
               </div>
-              <h1 className="text-4xl font-black text-dark font-poppins mb-4 leading-tight">{title}</h1>
-              <div className="flex items-center text-gray-500 mb-6 group">
-                <MapPin size={20} className="mr-2 text-primary" />
-                <span className="text-lg font-medium">{location}</span>
+              <h1 className="text-2xl md:text-4xl font-black text-dark font-poppins mb-4 leading-tight">{title}</h1>
+              <div className="flex flex-wrap items-center gap-3 mb-4 justify-between">
+                <div className="flex items-center gap-2">
+                  <MapPin size={18} className="text-primary flex-shrink-0" />
+                  <span className="text-base font-medium text-gray-500">{location}</span>
+                </div>
+                <div>
+                  {selectedListing.mapLink ? (
+                    <a
+                      href={selectedListing.mapLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-xs font-black text-white bg-green-500 hover:bg-green-600 transition-colors uppercase tracking-widest px-3 py-1.5 rounded-lg shadow-md shadow-green-500/20"
+                    >
+                      <ExternalLink size={12} />
+                      <span>📍 Exact Location</span>
+                    </a>
+                  ) : (
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location + ', Rwanda')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-xs font-black text-primary hover:text-dark transition-colors uppercase tracking-widest bg-primary/5 px-3 py-1.5 rounded-lg"
+                    >
+                      <ExternalLink size={12} />
+                      <span>View on Map</span>
+                    </a>
+                  )}
+                </div>
               </div>
-              <div className="text-4xl font-black text-primary font-poppins">${Number(price).toLocaleString()}</div>
+              <div className="text-3xl md:text-4xl font-black text-primary font-poppins">${Number(price).toLocaleString()}</div>
             </div>
 
             {/* Quick Stats */}
@@ -174,23 +199,31 @@ const ListingDetailsPage = () => {
               </p>
             </div>
 
-            {/* Features (Dummy) */}
-            <div>
-               <h3 className="text-2xl font-black text-dark font-poppins mb-6 pb-2 border-b-2 border-primary w-fit">Property Features</h3>
-               <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                 {['Wifi', 'Air Conditioning', 'Swimming Pool', 'Security', 'Parking', 'Gym'].map(feature => (
-                   <div key={feature} className="flex items-center gap-3 text-gray-700 font-medium">
-                     <div className="w-2 h-2 rounded-full bg-primary"></div>
-                     {feature}
-                   </div>
-                 ))}
-               </div>
-            </div>
+            {/* Features (Dynamic from DB) */}
+            {(() => {
+              let featuresList = selectedListing.features;
+              if (typeof featuresList === 'string') {
+                try { featuresList = JSON.parse(featuresList); } catch { featuresList = []; }
+              }
+              return featuresList && Array.isArray(featuresList) && featuresList.length > 0 ? (
+                <div>
+                  <h3 className="text-2xl font-black text-dark font-poppins mb-6 pb-2 border-b-2 border-primary w-fit">Property Features</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                    {featuresList.map(feature => (
+                      <div key={feature} className="flex items-center gap-3 text-gray-700 font-medium">
+                        <div className="w-2 h-2 rounded-full bg-primary"></div>
+                        {feature}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null;
+            })()}
           </div>
 
           {/* Contact & Owner */}
-          <aside>
-            <div className="sticky top-40 bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-2xl">
+          <aside className="lg:col-span-1">
+            <div className="lg:sticky lg:top-40 bg-white p-6 md:p-8 rounded-[2rem] border border-gray-100 shadow-xl">
               <h3 className="text-xl font-black text-dark mb-8 font-poppins">Listing Owner</h3>
               
               <div className="flex items-center gap-5 mb-10 pb-10 border-b border-gray-100">
@@ -204,14 +237,20 @@ const ListingDetailsPage = () => {
               </div>
 
               <div className="space-y-4 mb-10">
-                <button className="w-full btn-primary py-4 rounded-2xl flex items-center justify-center gap-3 group">
+                <a 
+                  href={`tel:${owner?.phone || '+250788000000'}`}
+                  className="w-full btn-primary py-4 rounded-2xl flex items-center justify-center gap-3 group"
+                >
                   <Phone size={20} className="group-hover:rotate-12 transition-transform" />
-                  <span className="text-lg font-bold">{owner?.phone || '+1 (234) 567-890'}</span>
-                </button>
-                <button className="w-full btn-outline py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-primary/5 hover:border-primary/30 group">
+                  <span className="text-lg font-bold">{owner?.phone || '+250 788 000 000'}</span>
+                </a>
+                <a 
+                  href={`mailto:${owner?.email || 'sales@tabiconst.com'}?subject=Inquiry about ${encodeURIComponent(title)}`}
+                  className="w-full btn-outline py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-primary/5 hover:border-primary/30 group"
+                >
                   <Mail size={20} className="group-hover:translate-x-1 transition-transform" />
                   <span className="text-lg font-bold">Send Email</span>
-                </button>
+                </a>
               </div>
 
               <div className="p-6 bg-accent/50 rounded-2xl">

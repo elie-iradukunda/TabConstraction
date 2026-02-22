@@ -8,8 +8,8 @@ const startServer = async () => {
   try {
     await connectDB();
     
-    // Sync models - in production you might use migrations
-    await sequelize.sync({ force: false }); // Change to true if you want to drop and recreate tables
+    // Sync models - using alter: true to automatically update schema changes
+    await sequelize.sync({ alter: true });
     console.log('Database synced');
 
     app.listen(PORT, () => {

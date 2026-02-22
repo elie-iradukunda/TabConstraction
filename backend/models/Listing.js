@@ -47,9 +47,22 @@ const Listing = sequelize.define('Listing', {
     type: DataTypes.STRING, // e.g., "1500 sqft" or "2 acres"
     allowNull: true
   },
+  mapLink: {
+    type: DataTypes.TEXT, // Google Maps URL pasted by landlord
+    allowNull: true
+  },
+  features: {
+    type: DataTypes.JSON, // e.g., ["Wifi", "Parking", "Security"]
+    allowNull: true,
+    defaultValue: []
+  },
   status: {
     type: DataTypes.ENUM('pending', 'active', 'rejected'),
     defaultValue: 'pending'
+  },
+  userId: {
+    type: DataTypes.UUID,
+    allowNull: true
   }
 });
 

@@ -77,6 +77,7 @@ const seedData = async () => {
         bedrooms: 4,
         bathrooms: 3,
         size: '3500 sqft',
+        features: ['Swimming Pool', 'Garden', 'Security', 'Parking', 'Smart Home', 'Wifi'],
         status: 'active'
       },
       {
@@ -91,6 +92,7 @@ const seedData = async () => {
         bedrooms: 2,
         bathrooms: 2,
         size: '1200 sqft',
+        features: ['Wifi', 'Air Conditioning', 'Gym', 'Parking', 'Elevator'],
         status: 'active'
       },
       {

@@ -11,14 +11,18 @@ const storage = multer.diskStorage({
 });
 
 const checkFileType = (file, cb) => {
-  const filetypes = /jpg|jpeg|png/;
+  // Accept jpg, jpeg, png, webp, gif
+  const filetypes = /jpg|jpeg|png|webp|gif/;
   const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = filetypes.test(file.mimetype);
 
   if (extname && mimetype) {
     return cb(null, true);
+  } else if (file.mimetype.startsWith('image/')) {
+    // Accept anything the browser reports as an image
+    return cb(null, true);
   } else {
-    cb('Images only!');
+    cb(new Error('Only image files are allowed (jpg, png, webp)'));
   }
 };
 
@@ -26,7 +30,8 @@ const upload = multer({
   storage,
   fileFilter: function(req, file, cb) {
     checkFileType(file, cb);
-  }
+  },
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB max per file
 });
 
 module.exports = upload;

@@ -8,13 +8,15 @@ const {
   deleteListing,
   getMyListings,
   getAdminListings,
-  updateListingStatus
+  updateListingStatus,
+  getDashboardStats
 } = require('../controllers/listingController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 
 router.get('/', getListings);
-router.get('/admin', protect, authorize('admin'), getAdminListings);
+router.get('/stats', protect, authorize('admin', 'manager'), getDashboardStats);
+router.get('/admin', protect, authorize('admin', 'manager'), getAdminListings);
 router.get('/my', protect, getMyListings);
 router.get('/:id', getListing);
 router.post('/', protect, upload.array('images', 5), createListing);
