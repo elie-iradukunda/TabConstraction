@@ -7,14 +7,18 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
 import { 
-  Home, Tag, Briefcase, Box, Users, Package, ShieldCheck, Heart, MessageSquare, Clock, CheckCircle2, ArrowRight
+  Home, Tag, Briefcase, Box, Users, Package, ShieldCheck, Heart, MessageSquare, Clock, CheckCircle2, ArrowRight, Calendar
 } from 'lucide-react';
+import api from '../services/api';
 
 const DashboardOverview = () => {
   const { user } = useAuthStore();
   const { myListings, fetchMyMyListings } = useListingStore();
   const [stats, setStats] = useState(null);
   const [loadingStats, setLoadingStats] = useState(true);
+  const [userStats, setUserStats] = useState({ bookings: 0, orders: 0 });
+  const [recentOrders, setRecentOrders] = useState([]);
+  const [recentBookings, setRecentBookings] = useState([]);
 
   // Note: I missed that useListingStore uses fetchMyListings not fetchMyMyListings in previous edit, 
   // but looking at the import, it's fetchMyListings. 
@@ -24,8 +28,29 @@ const DashboardOverview = () => {
     fetchMyListings();
     if (['admin', 'manager'].includes(user?.role)) {
       loadStats();
+    } else {
+      loadUserDashboardData();
     }
   }, []);
+
+  const loadUserDashboardData = async () => {
+    try {
+      const [bookingsRes, ordersRes] = await Promise.all([
+        api.get('/bookings/my-bookings'),
+        api.get('/orders/my-orders')
+      ]);
+      
+      setUserStats({
+        bookings: bookingsRes.data.bookings?.length || 0,
+        orders: ordersRes.data.orders?.length || 0
+      });
+      
+      setRecentBookings(bookingsRes.data.bookings?.slice(0, 3) || []);
+      setRecentOrders(ordersRes.data.orders?.slice(0, 3) || []);
+    } catch (error) {
+      console.error('Failed to load user dashboard data:', error);
+    }
+  };
 
   const loadStats = async () => {
     try {
@@ -63,10 +88,9 @@ const DashboardOverview = () => {
     { title: 'Active', value: myListings.filter(l => l.status === 'active').length, icon: <CheckCircle2 className="text-green-600" />, iconBg: 'bg-green-50' },
     { title: 'Messages', value: '0', icon: <MessageSquare className="text-purple-600" />, iconBg: 'bg-purple-50' },
   ] : [
-    { title: 'Saved Properties', value: '0', icon: <Heart className="text-pink-600" />, iconBg: 'bg-pink-50' },
-    { title: 'Listings Available', value: '-', icon: <Home className="text-blue-600" />, iconBg: 'bg-blue-50' },
-    { title: 'Notifications', value: '0', icon: <Box className="text-orange-600" />, iconBg: 'bg-orange-50' },
-    { title: 'Reviews', value: '0', icon: <Users className="text-purple-600" />, iconBg: 'bg-purple-50' },
+    { title: 'My Visitings', value: userStats.bookings, icon: <Calendar className="text-blue-600" />, iconBg: 'bg-blue-50' },
+    { title: 'My Orders', value: userStats.orders, icon: <Package className="text-orange-600" />, iconBg: 'bg-orange-50' },
+    { title: 'Notifications', value: '0', icon: <Box className="text-purple-600" />, iconBg: 'bg-purple-50' },
   ];
 
   return (
@@ -187,15 +211,59 @@ const DashboardOverview = () => {
               </div>
             </div>
           ) : (
-             <div className="bg-white p-10 md:p-16 rounded-3xl md:rounded-[3rem] border border-gray-100 shadow-sm text-center">
-                <div className="w-20 h-20 bg-pink-50 text-pink-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm shadow-pink-100">
-                   <Heart size={40} fill="currentColor" />
-                </div>
-                <h2 className="text-xl md:text-2xl font-black text-dark mb-2 font-poppins">Ready to find a home?</h2>
-                <p className="text-gray-400 font-medium mb-8 text-sm md:text-base max-w-md mx-auto">Start browsing the marketplace and save your favorite properties to see them right here on your dashboard.</p>
-                <Link to="/listings" className="bg-primary text-white px-10 py-4 rounded-2xl font-black shadow-xl shadow-primary/20 hover:scale-[1.03] transition-transform inline-block text-sm uppercase tracking-widest">
-                   BROWSE MARKET
-                </Link>
+             <div className="space-y-6">
+               <div className="bg-white p-6 md:p-8 rounded-3xl md:rounded-[2.5rem] border border-gray-100 shadow-sm">
+                 <div className="flex items-center justify-between mb-8">
+                   <h2 className="text-lg md:text-xl font-black text-dark font-poppins">My Recent Activities</h2>
+                 </div>
+                 
+                 <div className="space-y-4">
+                   {recentBookings.length === 0 && recentOrders.length === 0 ? (
+                      <div className="text-center py-10">
+                        <div className="w-20 h-20 bg-pink-50 text-pink-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm shadow-pink-100">
+                           <Heart size={40} fill="currentColor" />
+                        </div>
+                        <h2 className="text-xl font-black text-dark mb-2 font-poppins">Ready to find a home?</h2>
+                        <p className="text-gray-400 font-medium mb-8 text-sm max-w-md mx-auto">Start browsing the marketplace and book a house or order materials to see activity here.</p>
+                        <Link to="/listings" className="bg-primary text-white px-10 py-4 rounded-2xl font-black shadow-xl shadow-primary/20 hover:scale-[1.03] transition-transform inline-block text-sm uppercase tracking-widest">
+                           BROWSE MARKET
+                        </Link>
+                      </div>
+                   ) : (
+                     <div className="grid grid-cols-1 gap-4">
+                       {/* Mix of bookings and orders */}
+                       {recentBookings.map(b => (
+                         <div key={b.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 hover:border-blue-200 transition-colors">
+                            <div className="flex items-center gap-4">
+                              <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center">
+                                <Calendar size={20} />
+                              </div>
+                              <div>
+                                <div className="text-sm font-black text-dark">Visiting Request: {b.listing?.title}</div>
+                                <div className="text-[11px] text-gray-400 font-bold uppercase">{b.status} • {b.visitationDate}</div>
+                              </div>
+                            </div>
+                            <Link to="/dashboard/visitings" className="text-primary"><ArrowRight size={18} /></Link>
+                         </div>
+                       ))}
+                       {recentOrders.map(o => (
+                         <div key={o.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 hover:border-orange-200 transition-colors">
+                            <div className="flex items-center gap-4">
+                              <div className="w-10 h-10 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center">
+                                <Package size={20} />
+                              </div>
+                              <div>
+                                <div className="text-sm font-black text-dark">Material Order: {o.listing?.title}</div>
+                                <div className="text-[11px] text-gray-400 font-bold uppercase">{o.status} • Total: {Number(o.totalPrice).toLocaleString()} RWF</div>
+                              </div>
+                            </div>
+                            <Link to="/dashboard/orders" className="text-primary"><ArrowRight size={18} /></Link>
+                         </div>
+                       ))}
+                     </div>
+                   )}
+                 </div>
+               </div>
              </div>
           )}
         </div>

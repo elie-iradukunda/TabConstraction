@@ -93,7 +93,7 @@ const MyListings = ({ adminView = false }) => {
                       </span>
                     </div>
                     <div className="font-black text-dark font-poppins text-base mt-1">
-                      ${Number(listing.price).toLocaleString()}
+                      {Number(listing.price).toLocaleString()} RWF
                     </div>
                   </div>
                 </div>
@@ -153,7 +153,7 @@ const MyListings = ({ adminView = false }) => {
                         </span>
                       </td>
                       <td className="px-8 py-6">
-                        <span className="font-black text-dark font-poppins">${Number(listing.price).toLocaleString()}</span>
+                        <span className="font-black text-dark font-poppins">{Number(listing.price).toLocaleString()} RWF</span>
                       </td>
                       <td className="px-8 py-6">
                         <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase capitalize ${statusStyle(listing.status)}`}>

@@ -13,12 +13,8 @@ const HomePage = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/dashboard', { replace: true });
-      return;
-    }
     fetchListings({ limit: 4 });
-  }, [isAuthenticated]);
+  }, []);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -63,10 +59,14 @@ const HomePage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
-              <h2 className="text-3xl font-black text-dark mb-4 leading-tight">Get home recommendations</h2>
-              <p className="text-lg text-gray-600 mb-8 font-medium">Sign in for a more personalized experience.</p>
-              <button onClick={() => navigate('/login')} className="btn-outline border-primary px-10 rounded-md py-4 text-primary font-bold">
-                Sign in
+              <p className="text-lg text-gray-600 mb-8 font-medium">
+                {isAuthenticated ? "Continue your journey from your dashboard." : "Sign in for a more personalized experience."}
+              </p>
+              <button 
+                onClick={() => navigate(isAuthenticated ? '/dashboard' : '/login')} 
+                className="btn-outline border-primary px-10 rounded-md py-4 text-primary font-bold"
+              >
+                {isAuthenticated ? 'Visit Dashboard' : 'Sign in'}
               </button>
             </div>
             

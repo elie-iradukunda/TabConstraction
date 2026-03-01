@@ -8,14 +8,18 @@ import ListingsPage from './pages/ListingsPage';
 import ListingDetailsPage from './pages/ListingDetailsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import HelpCenter from './pages/HelpCenter';
 
 // Protected Pages (Dashboard)
 import DashboardLayout from './layouts/DashboardLayout';
 import DashboardOverview from './pages/DashboardOverview';
 import MyListings from './pages/MyListings';
+import MyBookings from './pages/MyBookings';
+import MyOrders from './pages/MyOrders';
+import LandlordVisitings from './pages/LandlordVisitings';
+import AdminOrders from './pages/AdminOrders';
 import AddListingPage from './pages/AddListingPage';
 import EditListingPage from './pages/EditListingPage';
-import Favorites from './pages/Favorites';
 import ProfileSettings from './pages/ProfileSettings';
 
 // Admin Pages
@@ -45,6 +49,7 @@ function App() {
         <Route path="/listings/:id" element={<ListingDetailsPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/help-center" element={<HelpCenter />} />
 
         {/* Dashboard Routes (Protected) */}
         <Route 
@@ -57,6 +62,24 @@ function App() {
         >
           <Route index element={<DashboardOverview />} />
           <Route path="my-listings" element={<MyListings />} />
+          <Route path="visitings" element={<MyBookings />} />
+          <Route path="orders" element={<MyOrders />} />
+          <Route 
+            path="requested-visitings" 
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'manager', 'landlord']}>
+                <LandlordVisitings />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="manage-orders" 
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                <AdminOrders />
+              </ProtectedRoute>
+            } 
+          />
           <Route 
             path="add-listing" 
             element={
@@ -73,7 +96,6 @@ function App() {
               </ProtectedRoute>
             } 
           />
-          <Route path="favorites" element={<Favorites />} />
           <Route path="profile" element={<ProfileSettings />} />
         </Route>
 

@@ -29,9 +29,9 @@ const ListingCard = ({ listing }) => {
         </div>
         
         <div className="p-6">
-          <div className="flex justify-between items-start mb-3">
+          <div className="flex justify-between items-start mb-3 gap-2">
             <h3 className="text-xl font-bold text-dark group-hover:text-primary transition-colors line-clamp-1">{title}</h3>
-            <span className="text-xl font-black text-primary font-poppins">${Number(price).toLocaleString()}</span>
+            <span className="text-lg font-black text-primary font-poppins shrink-0">{Number(price).toLocaleString()} RWF</span>
           </div>
           
           <div className="flex items-center text-gray-400 text-sm mb-6">

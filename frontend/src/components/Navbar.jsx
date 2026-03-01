@@ -22,6 +22,7 @@ const Navbar = () => {
 
           {/* Left Nav Links */}
           <div className="hidden lg:flex items-center space-x-6">
+            <Link to="/" className="text-sm font-bold text-dark hover:text-primary transition-colors">Home</Link>
             <Link to="/listings?type=sale" className="text-sm font-bold text-dark hover:text-primary transition-colors">Buy</Link>
             <Link to="/listings?type=rent" className="text-sm font-bold text-dark hover:text-primary transition-colors">Rent</Link>
             <Link to="/dashboard/add-listing" className="text-sm font-bold text-dark hover:text-primary transition-colors">Sell</Link>
@@ -29,7 +30,7 @@ const Navbar = () => {
           </div>
 
           {/* Center Logo */}
-          <Link to="/" className="flex items-center gap-2 group">
+          <Link to="/" className="flex items-center gap-2 group absolute left-1/2 -translate-x-1/2 lg:static lg:translate-x-0">
             <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center text-white group-hover:rotate-6 transition-transform shadow-lg shadow-primary/20">
               <Home size={20} />
             </div>
@@ -71,6 +72,7 @@ const Navbar = () => {
       {isOpen && (
         <div className="absolute top-16 left-0 right-0 bg-white border-b border-gray-100 lg:hidden shadow-2xl z-50">
           <div className="p-5 space-y-1">
+            <Link to="/" onClick={close} className="flex items-center gap-3 font-bold text-dark text-base py-3 px-4 rounded-xl hover:bg-accent/50 transition-colors">🏠 Home</Link>
             <Link to="/listings?type=sale" onClick={close} className="flex items-center gap-3 font-bold text-dark text-base py-3 px-4 rounded-xl hover:bg-accent/50 transition-colors">🏷️ Buy Property</Link>
             <Link to="/listings?type=rent" onClick={close} className="flex items-center gap-3 font-bold text-dark text-base py-3 px-4 rounded-xl hover:bg-accent/50 transition-colors">🔑 Rent Property</Link>
             <Link to="/listings?category=material" onClick={close} className="flex items-center gap-3 font-bold text-dark text-base py-3 px-4 rounded-xl hover:bg-accent/50 transition-colors">🔧 Materials</Link>

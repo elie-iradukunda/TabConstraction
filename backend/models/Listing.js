@@ -28,7 +28,7 @@ const Listing = sequelize.define('Listing', {
     allowNull: false
   },
   category: {
-    type: DataTypes.ENUM('house', 'land', 'material'),
+    type: DataTypes.STRING,
     allowNull: false
   },
   propertyType: {

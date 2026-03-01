@@ -102,7 +102,7 @@ const AdminListingApproval = () => {
                   <div>
                     <div className="font-black text-dark text-base">{lst.title}</div>
                     <div className="flex items-center justify-between mt-1">
-                      <span className="text-xs font-bold text-primary">${parseFloat(lst.price).toLocaleString()}</span>
+                      <span className="text-xs font-bold text-primary">{parseFloat(lst.price).toLocaleString()} RWF</span>
                       <span className="px-2 py-0.5 bg-gray-100 rounded-md text-[9px] font-black uppercase text-gray-500">{lst.category}</span>
                     </div>
                   </div>
@@ -150,7 +150,7 @@ const AdminListingApproval = () => {
                       <td className="px-8 py-6">
                          <div>
                             <div className="font-black text-dark text-[15px]">{lst.title}</div>
-                            <div className="text-xs text-primary font-bold mt-1">${parseFloat(lst.price).toLocaleString()}</div>
+                            <div className="text-xs text-primary font-bold mt-1">{parseFloat(lst.price).toLocaleString()} RWF</div>
                          </div>
                       </td>
                       <td className="px-8 py-6">
@@ -244,7 +244,7 @@ const AdminListingApproval = () => {
                       <div className="flex flex-wrap gap-4">
                         <div className="min-w-[100px]">
                            <p className="text-[10px] font-black text-gray-300 uppercase mb-1">Pricing</p>
-                           <p className="text-xl font-black text-primary">${parseFloat(selectedListing.price).toLocaleString()}</p>
+                           <p className="text-xl font-black text-primary">{parseFloat(selectedListing.price).toLocaleString()} RWF</p>
                         </div>
                         <div className="flex-1">
                            <p className="text-[10px] font-black text-gray-300 uppercase mb-1">Location</p>

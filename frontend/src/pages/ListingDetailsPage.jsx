@@ -1,18 +1,83 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MapPin, Bed, Bath, Move, Share2, Heart, Phone, Mail, User, ChevronLeft, ChevronRight, Calendar, Tag, ExternalLink } from 'lucide-react';
+import { MapPin, Bed, Bath, Move, Share2, Heart, Phone, Mail, User, ChevronLeft, ChevronRight, Calendar, Tag, ExternalLink, X, ShoppingCart, CheckCircle } from 'lucide-react';
 import { useListingStore } from '../store/listingStore';
+import { useAuthStore } from '../store/authStore';
 import MainLayout from '../layouts/MainLayout';
+import api from '../services/api';
 
 const ListingDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { selectedListing, loading, fetchListingById } = useListingStore();
+  const { isAuthenticated } = useAuthStore();
   const [activeImage, setActiveImage] = useState(0);
+
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [bookingForm, setBookingForm] = useState({ visitationDate: '', visitationTime: '', message: '' });
+  const [checkoutForm, setCheckoutForm] = useState({ quantity: 1, shippingAddress: '' });
+  const [submitting, setSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     fetchListingById(id);
   }, [id]);
+
+  const handleCreateBooking = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setErrorMessage('');
+    
+    if (!bookingForm.visitationDate || !bookingForm.visitationTime) {
+      setErrorMessage('Please select a date and time for your visit');
+      setSubmitting(false);
+      return;
+    }
+
+    try {
+      await api.post('/bookings', {
+        listingId: id,
+        visitationDate: bookingForm.visitationDate,
+        visitationTime: bookingForm.visitationTime,
+        message: bookingForm.message
+      });
+      setSuccessMessage('Visitation request sent successfully! The landlord will approve and contact you shortly.');
+      setTimeout(() => { setShowBookingModal(false); setSuccessMessage(''); }, 3000);
+    } catch (err) {
+      setErrorMessage(err.response?.data?.message || 'Failed to request visitation. Make sure you are logged in.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCreateOrder = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setErrorMessage('');
+
+    if (!checkoutForm.shippingAddress) {
+      setErrorMessage('Shipping address is required');
+      setSubmitting(false);
+      return;
+    }
+
+    try {
+      await api.post('/orders', {
+        listingId: id,
+        quantity: checkoutForm.quantity,
+        totalPrice: checkoutForm.quantity * Number(selectedListing.price),
+        shippingAddress: checkoutForm.shippingAddress
+      });
+      setSuccessMessage('Order placed successfully!');
+      setTimeout(() => { setShowCheckoutModal(false); setSuccessMessage(''); }, 3000);
+    } catch (err) {
+      setErrorMessage(err.response?.data?.message || 'Failed to place order. Make sure you are logged in.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -147,7 +212,7 @@ const ListingDetailsPage = () => {
                   )}
                 </div>
               </div>
-              <div className="text-3xl md:text-4xl font-black text-primary font-poppins">${Number(price).toLocaleString()}</div>
+              <div className="text-3xl md:text-4xl font-black text-primary font-poppins">{Number(price).toLocaleString()} RWF</div>
             </div>
 
             {/* Quick Stats */}
@@ -237,16 +302,46 @@ const ListingDetailsPage = () => {
               </div>
 
               <div className="space-y-4 mb-10">
+                {category === 'house' && type === 'rent' && (
+                  <button 
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        navigate('/login');
+                      } else {
+                        setShowBookingModal(true);
+                      }
+                    }}
+                    className="w-full btn-primary py-4 rounded-2xl flex items-center justify-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-xl shadow-blue-500/30 transition-all font-black"
+                  >
+                    <Calendar size={20} />
+                    <span className="text-lg">Schedule a Visit</span>
+                  </button>
+                )}
+                {category === 'material' && (
+                  <button 
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        navigate('/login');
+                      } else {
+                        setShowCheckoutModal(true);
+                      }
+                    }}
+                    className="w-full btn-primary py-4 rounded-2xl flex items-center justify-center gap-3 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 shadow-xl shadow-orange-500/30 transition-all font-black"
+                  >
+                    <ShoppingCart size={20} />
+                    <span className="text-lg">Order Material</span>
+                  </button>
+                )}
                 <a 
                   href={`tel:${owner?.phone || '+250788000000'}`}
-                  className="w-full btn-primary py-4 rounded-2xl flex items-center justify-center gap-3 group"
+                  className={`w-full ${(category === 'house' && type === 'rent') || category === 'material' ? 'btn-outline border-gray-200 text-gray-700' : 'btn-primary'} py-4 rounded-2xl flex items-center justify-center gap-3 group transition-colors`}
                 >
                   <Phone size={20} className="group-hover:rotate-12 transition-transform" />
                   <span className="text-lg font-bold">{owner?.phone || '+250 788 000 000'}</span>
                 </a>
                 <a 
                   href={`mailto:${owner?.email || 'sales@tabiconst.com'}?subject=Inquiry about ${encodeURIComponent(title)}`}
-                  className="w-full btn-outline py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-primary/5 hover:border-primary/30 group"
+                  className="w-full btn-outline py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-primary/5 hover:border-primary/30 group text-gray-700 border-gray-200"
                 >
                   <Mail size={20} className="group-hover:translate-x-1 transition-transform" />
                   <span className="text-lg font-bold">Send Email</span>
@@ -266,6 +361,183 @@ const ListingDetailsPage = () => {
           </aside>
         </div>
       </div>
+
+      {/* Booking Modal */}
+      {showBookingModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-dark/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+              <h3 className="text-xl font-black font-poppins text-dark">Schedule Visit</h3>
+              <button onClick={() => setShowBookingModal(false)} className="text-gray-400 hover:text-dark hover:bg-gray-100 p-2 rounded-xl transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6">
+              {successMessage ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <div className="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mb-4">
+                    <CheckCircle size={32} />
+                  </div>
+                  <h4 className="text-xl font-bold text-dark mb-2">Request Sent!</h4>
+                  <p className="text-gray-500">{successMessage}</p>
+                </div>
+              ) : (
+                <form onSubmit={handleCreateBooking} className="space-y-4">
+                  {errorMessage && (
+                    <div className="p-4 bg-red-50 text-red-600 rounded-xl text-sm font-medium border border-red-100">
+                      {errorMessage}
+                    </div>
+                  )}
+
+                  <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 mb-2 relative">
+                    <h4 className="font-black text-dark text-[11px] mb-4 uppercase tracking-widest text-blue-800">Booking Process</h4>
+                    <div className="grid grid-cols-3 gap-2 relative">
+                       <div className="absolute top-4 left-[16%] right-[16%] h-[2px] bg-blue-200/50 z-0 hidden sm:block"></div>
+                       <div className="flex flex-col items-center text-center gap-2 z-10">
+                         <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-black border-2 border-white shadow-sm text-sm">1</div>
+                         <span className="text-xs font-bold text-blue-900 leading-tight">Schedule<br/>Visit</span>
+                       </div>
+                       <div className="flex flex-col items-center text-center gap-2 z-10">
+                         <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black border-2 border-white shadow-sm text-sm">2</div>
+                         <span className="text-xs font-bold text-blue-900/60 leading-tight">View<br/>Property</span>
+                       </div>
+                       <div className="flex flex-col items-center text-center gap-2 z-10">
+                         <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black border-2 border-white shadow-sm text-sm">3</div>
+                         <span className="text-xs font-bold text-blue-900/60 leading-tight">Approve<br/>& Pay</span>
+                       </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-gray-700">Visitation Date</label>
+                      <input 
+                        type="date" 
+                        required 
+                        className="input-field" 
+                        value={bookingForm.visitationDate} 
+                        onChange={(e) => setBookingForm({...bookingForm, visitationDate: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-gray-700">Preferred Time</label>
+                      <select 
+                        required 
+                        className="input-field" 
+                        value={bookingForm.visitationTime} 
+                        onChange={(e) => setBookingForm({...bookingForm, visitationTime: e.target.value})}
+                      >
+                         <option value="">Select a time</option>
+                         <option value="Morning (8AM - 11AM)">Morning (8AM - 11AM)</option>
+                         <option value="Midday (11AM - 2PM)">Midday (11AM - 2PM)</option>
+                         <option value="Afternoon (2PM - 5PM)">Afternoon (2PM - 5PM)</option>
+                         <option value="Evening (5PM - 8PM)">Evening (5PM - 8PM)</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                      <label className="text-sm font-bold text-gray-700">Message for Landlord (Optional)</label>
+                      <textarea 
+                        rows={2}
+                        className="input-field resize-none" 
+                        placeholder="Any specific questions or requests?"
+                        value={bookingForm.message} 
+                        onChange={(e) => setBookingForm({...bookingForm, message: e.target.value})}
+                      />
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    disabled={submitting} 
+                    className="w-full btn-primary py-4 text-base mt-2 disabled:opacity-50 font-black shadow-lg shadow-blue-500/20"
+                  >
+                    {submitting ? 'Submitting...' : 'Request Visitation'}
+                  </button>
+                  <p className="text-center text-xs text-gray-400 font-bold">You won't be charged anything yet.</p>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Checkout Modal */}
+      {showCheckoutModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-dark/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+              <h3 className="text-xl font-black font-poppins text-dark">Order {title}</h3>
+              <button onClick={() => setShowCheckoutModal(false)} className="text-gray-400 hover:text-dark hover:bg-gray-100 p-2 rounded-xl transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6">
+              {successMessage ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <div className="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mb-4">
+                    <CheckCircle size={32} />
+                  </div>
+                  <h4 className="text-xl font-bold text-dark mb-2">Order Confirmed!</h4>
+                  <p className="text-gray-500">{successMessage}</p>
+                </div>
+              ) : (
+                <form onSubmit={handleCreateOrder} className="space-y-5">
+                  {errorMessage && (
+                    <div className="p-4 bg-red-50 text-red-600 rounded-xl text-sm font-medium border border-red-100">
+                      {errorMessage}
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-gray-700">Quantity</label>
+                    <input 
+                      type="number" 
+                      min="1"
+                      required 
+                      className="input-field" 
+                      value={checkoutForm.quantity} 
+                      onChange={(e) => setCheckoutForm({...checkoutForm, quantity: parseInt(e.target.value) || 1})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-gray-700">Shipping Address</label>
+                    <textarea 
+                      required 
+                      rows={3}
+                      className="input-field resize-none" 
+                      placeholder="Enter full delivery address"
+                      value={checkoutForm.shippingAddress} 
+                      onChange={(e) => setCheckoutForm({...checkoutForm, shippingAddress: e.target.value})}
+                    />
+                  </div>
+                  
+                  <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 mt-4">
+                    <div className="flex justify-between items-center mb-2 text-sm text-gray-600">
+                      <span>Price per unit</span>
+                      <span className="font-bold">{Number(price).toLocaleString()} RWF</span>
+                    </div>
+                    <div className="flex justify-between items-center text-lg font-black text-dark pt-2 border-t border-gray-200">
+                      <span>Total Price</span>
+                      <span className="text-primary">
+                        { (checkoutForm.quantity * Number(price)).toLocaleString() } RWF
+                      </span>
+                    </div>
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    disabled={submitting} 
+                    className="w-full btn-primary py-4 text-lg mt-4 disabled:opacity-50"
+                  >
+                    {submitting ? 'Processing...' : 'Place Order'}
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </MainLayout>
   );
 };

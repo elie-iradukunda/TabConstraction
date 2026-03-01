@@ -86,7 +86,7 @@ const FilterPanel = ({ filters, setFilters, onApply, onClear }) => (
 
       {/* Price Range */}
       <div>
-        <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">Price Range ($)</label>
+        <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">Price Range (RWF)</label>
         <div className="flex gap-2">
           <input
             type="number"

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Home, PlusCircle, Heart, User, LogOut, Search, Settings, ShieldCheck, Menu, X, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Home, PlusCircle, Heart, User, LogOut, Search, Settings, ShieldCheck, Menu, X, ChevronRight, Calendar, Package } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
 const DashboardLayout = () => {
@@ -16,28 +16,31 @@ const DashboardLayout = () => {
 
   const menuItems = [
     ...(user?.role === 'admin' || user?.role === 'manager'
-      ? [{ name: 'Control Panel', path: '/admin', icon: <ShieldCheck size={20} /> }]
+      ? [{ name: 'Control Panel', path: '/admin', icon: <ShieldCheck size={20} /> },
+         { name: 'Manage Orders', path: '/dashboard/manage-orders', icon: <Package size={20} /> }]
       : []),
     { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} /> },
+    { name: 'My Visitings', path: '/dashboard/visitings', icon: <Calendar size={20} /> },
+    { name: 'My Orders', path: '/dashboard/orders', icon: <Package size={20} /> },
     ...(['admin', 'manager', 'landlord'].includes(user?.role)
       ? [
+          { name: 'Requested Visitings', path: '/dashboard/requested-visitings', icon: <Calendar size={20} /> },
           { name: 'My Listings', path: '/dashboard/my-listings', icon: <Home size={20} /> },
           { name: 'Add New Listing', path: '/dashboard/add-listing', icon: <PlusCircle size={20} /> },
         ]
       : []),
-    { name: 'Favorites', path: '/dashboard/favorites', icon: <Heart size={20} /> },
     { name: 'Profile Settings', path: '/dashboard/profile', icon: <User size={20} /> },
   ];
 
   const SidebarContent = ({ onLinkClick }) => (
     <>
       {/* Logo */}
-      <div className="px-6 py-6 flex items-center gap-3 border-b border-white/5">
+      <Link to="/dashboard" className="px-6 py-6 flex items-center gap-3 border-b border-white/5 hover:bg-white/5 transition-colors block">
         <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center text-white shadow-lg flex-shrink-0">
           <Home size={20} fill="white" />
         </div>
-        <span className="text-lg font-black font-poppins tracking-tight">TabiConst</span>
-      </div>
+        <span className="text-lg font-black font-poppins tracking-tight text-white block">TabiConst</span>
+      </Link>
 
       {/* Nav */}
       <nav className="flex-grow pt-6 overflow-y-auto">
@@ -124,35 +127,41 @@ const DashboardLayout = () => {
           </button>
 
           {/* Brand on mobile */}
-          <div className="md:hidden flex items-center gap-2">
+          <Link to="/dashboard" className="md:hidden flex items-center gap-2 hover:opacity-80 transition-opacity absolute left-1/2 -translate-x-1/2">
             <div className="w-7 h-7 bg-primary rounded-lg flex items-center justify-center text-white">
               <Home size={14} fill="white" />
             </div>
             <span className="font-black text-dark text-base font-poppins">TabiConst</span>
-          </div>
+          </Link>
 
           {/* Right header icons */}
           <div className="flex items-center gap-4 ml-auto">
-            <button className="hidden sm:block text-gray-400 hover:text-primary transition-colors">
+            <Link to="/" title="Back to Homepage" className="hidden sm:block text-gray-400 hover:text-primary transition-colors flex items-center gap-1.5">
+              <Home size={18} />
+              <span className="text-sm font-bold">Home</span>
+            </Link>
+            <Link to="/listings" title="Search Marketplace" className="hidden sm:block text-gray-400 hover:text-primary transition-colors">
               <Search size={18} />
-            </button>
-            <button className="hidden sm:block text-gray-400 hover:text-primary transition-colors">
+            </Link>
+            <Link to="/dashboard" title="Dashboard Home" className="hidden sm:block text-gray-400 hover:text-primary transition-colors">
               <LayoutDashboard size={18} />
-            </button>
+            </Link>
             {(user?.role === 'admin' || user?.role === 'manager') && (
-              <Link to="/admin" className="hidden sm:block text-gray-400 hover:text-primary transition-colors">
+              <Link to="/admin" title="Admin Panel" className="hidden sm:block text-gray-400 hover:text-primary transition-colors">
                 <ShieldCheck size={18} />
               </Link>
             )}
-            <button className="hidden sm:block text-gray-400 hover:text-primary transition-colors">
+            <Link to="/dashboard/profile" title="Profile Settings" className="hidden sm:block text-gray-400 hover:text-primary transition-colors">
               <Settings size={18} />
-            </button>
+            </Link>
             <div className="w-px h-5 bg-gray-200 hidden sm:block" />
-            <img
-              src={`https://ui-avatars.com/api/?name=${user?.name || 'U'}&background=3b82f6&color=fff`}
-              alt="avatar"
-              className="w-8 h-8 md:w-9 md:h-9 rounded-lg border border-gray-100 shadow-sm cursor-pointer"
-            />
+            <Link to="/dashboard/profile">
+              <img
+                src={`https://ui-avatars.com/api/?name=${user?.name || 'U'}&background=3b82f6&color=fff`}
+                alt="avatar"
+                className="w-8 h-8 md:w-9 md:h-9 rounded-lg border border-gray-100 shadow-sm cursor-pointer hover:border-primary transition-all"
+              />
+            </Link>
             <ChevronRight size={14} className="text-gray-300 hidden sm:block" />
           </div>
         </header>

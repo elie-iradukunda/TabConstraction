@@ -458,7 +458,7 @@ const AddListingPage = () => {
                  {isMaterial ? 'Price per Unit' : isLand ? 'Asking Price' : 'Property Price'}
                </label>
                <div className="flex items-center">
-                  <span className="text-3xl font-black mr-2">$</span>
+                  <span className="text-xl font-black mr-2 uppercase tracking-tighter">RWF</span>
                   <input 
                     type="number" 
                     name="price"
@@ -534,7 +534,7 @@ const AddListingPage = () => {
               {formData.price && (
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400 font-bold">Price</span>
-                  <span className="font-black text-primary">${Number(formData.price).toLocaleString()}{formData.type === 'rent' ? '/mo' : ''}</span>
+                  <span className="font-black text-primary">{Number(formData.price).toLocaleString()} RWF{formData.type === 'rent' ? '/mo' : ''}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm">
