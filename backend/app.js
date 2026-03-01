@@ -58,11 +58,15 @@ app.use('/api/categories', categoryRoutes);
 
 // Serve frontend in production
 if (process.env.NODE_ENV === 'production') {
-  // Set build folder
-  app.use(express.static(path.join(__dirname, '../frontend/dist')));
+  const root = path.join(__dirname, '..');
+  const distPath = path.join(root, 'frontend', 'dist');
+  
+  // Serve static files from the frontend build folder
+  app.use(express.static(distPath));
 
-  app.use((req, res) => {
-    res.sendFile(path.resolve(__dirname, '../frontend', 'dist', 'index.html'));
+  // Catch-all route to serve index.html for any frontend route
+  app.get('/:path((?!api).*)', (req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
   });
 }
 
