@@ -12,7 +12,7 @@ export const useListingStore = create((set) => ({
     set({ loading: true, error: null });
     try {
       const data = await listingService.getListings(params);
-      set({ listings: data.listings, loading: false });
+      set({ listings: data.listings || [], loading: false });
     } catch (error) {
       set({ error: error.response?.data?.message || 'Failed to fetch listings', loading: false });
     }
@@ -22,7 +22,7 @@ export const useListingStore = create((set) => ({
     set({ loading: true, error: null });
     try {
       const data = await listingService.getMyListings();
-      set({ myListings: data.listings, loading: false });
+      set({ myListings: data.listings || [], loading: false });
     } catch (error) {
       set({ error: error.response?.data?.message || 'Failed to fetch your listings', loading: false });
     }
