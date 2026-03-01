@@ -56,19 +56,10 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/categories', categoryRoutes);
 
-// Serve frontend in production
-if (process.env.NODE_ENV === 'production') {
-  const root = path.join(__dirname, '..');
-  const distPath = path.join(root, 'frontend', 'dist');
-  
-  // Serve static files from the frontend build folder
-  app.use(express.static(distPath));
-
-  // Catch-all route to serve index.html for any frontend route
-  app.get('/:path((?!api).*)', (req, res) => {
-    res.sendFile(path.join(distPath, 'index.html'));
-  });
-}
+// Default route for API (since frontend is on Vercel)
+app.get('/', (req, res) => {
+  res.json({ message: 'TabiConstraction API is running' });
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
