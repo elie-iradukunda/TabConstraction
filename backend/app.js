@@ -19,7 +19,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Enable CORS
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://tabconst.vercel.app',
+    'https://tabiconstraction.onrender.com'
+  ],
+  credentials: true
+}));
 
 // Dev logging
 if (process.env.NODE_ENV === 'development') {
