@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Home, Layers, Hammer, MapPin, ChevronRight, Sparkles } from 'lucide-react';
+import { Search, Home, Layers, Hammer, MapPin, ChevronRight, Sparkles, Bed, Bath, Building2, Tag } from 'lucide-react';
 import { useListingStore } from '../store/listingStore';
 import { useAuthStore } from '../store/authStore';
+import { BACKEND_URL } from '../services/api';
 import MainLayout from '../layouts/MainLayout';
 import ListingCard from '../components/ListingCard';
 
@@ -11,9 +12,10 @@ const HomePage = () => {
   const { listings, fetchListings } = useListingStore();
   const { isAuthenticated } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
-    fetchListings({ limit: 4 });
+    fetchListings({ limit: 8 });
   }, []);
 
   const handleSearch = (e) => {
@@ -21,21 +23,100 @@ const HomePage = () => {
     navigate(`/listings?search=${searchQuery}`);
   };
 
+  // Get all listing images for the hero carousel
+  const getImageUrl = (imgObj) => {
+    if (!imgObj?.imageUrl) return null;
+    return imgObj.imageUrl.startsWith('http') ? imgObj.imageUrl : `${BACKEND_URL}${imgObj.imageUrl}`;
+  };
+
+  const heroImages = listings
+    ?.flatMap(l => (l.images || []).map(img => ({ url: getImageUrl(img), title: l.title, location: l.location, price: l.price })))
+    .filter(img => img.url)
+    .slice(0, 6) || [];
+
+  // Auto-slide every 4 seconds
+  useEffect(() => {
+    if (heroImages.length <= 1) return;
+    const timer = setInterval(() => {
+      setCurrentSlide(prev => (prev + 1) % heroImages.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [heroImages.length]);
+
+  // Pick the first listing as the "recommended" one
+  const recommendedListing = listings?.[0] || null;
+  const getListingImage = (listing) => {
+    if (!listing?.images || listing.images.length === 0) return null;
+    const url = listing.images[0].imageUrl;
+    return url.startsWith('http') ? url : `${BACKEND_URL}${url}`;
+  };
+
   return (
     <MainLayout>
-      {/* Zillow-Style Hero Section */}
-      <section className="relative h-[540px] flex items-center justify-center">
+      {/* Hero Section with animated listing images */}
+      <section className="relative h-[540px] flex items-center justify-center overflow-hidden">
+        {/* Animated Background Images */}
         <div className="absolute inset-0 z-0">
-          <img 
-            src="https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&q=80&w=2000" 
-            alt="Beautiful Home" 
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-black/30"></div>
+          {heroImages.length > 0 ? (
+            <>
+              {heroImages.map((img, idx) => (
+                <div
+                  key={idx}
+                  className="absolute inset-0 transition-opacity duration-[2000ms] ease-in-out"
+                  style={{ opacity: idx === currentSlide ? 1 : 0 }}
+                >
+                  <img
+                    src={img.url}
+                    alt={img.title}
+                    className="w-full h-full object-cover scale-105"
+                    style={{
+                      animation: idx === currentSlide ? 'heroZoom 8s ease-in-out infinite alternate' : 'none'
+                    }}
+                  />
+                </div>
+              ))}
+            </>
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
+              <div className="absolute top-20 left-20 w-72 h-72 bg-primary/10 rounded-full blur-3xl"></div>
+              <div className="absolute bottom-10 right-10 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
+            </div>
+          )}
+          {/* Dark overlay for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70"></div>
         </div>
 
+        {/* Slide indicators */}
+        {heroImages.length > 1 && (
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+            {heroImages.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setCurrentSlide(idx)}
+                className={`h-1.5 rounded-full transition-all duration-500 ${
+                  idx === currentSlide ? 'w-8 bg-white' : 'w-3 bg-white/40 hover:bg-white/60'
+                }`}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Current slide info */}
+        {heroImages.length > 0 && heroImages[currentSlide] && (
+          <div className="absolute bottom-6 right-6 z-20 bg-black/40 backdrop-blur-md rounded-xl px-4 py-2 border border-white/10 hidden md:block">
+            <div className="text-white/90 text-xs font-bold truncate max-w-[200px]">{heroImages[currentSlide].title}</div>
+            <div className="text-white/50 text-[10px] flex items-center gap-1">
+              <MapPin size={10} /> {heroImages[currentSlide].location}
+            </div>
+          </div>
+        )}
+
         <div className="relative z-10 w-full max-w-5xl px-4 text-center">
-          <h1 className="text-4xl md:text-6xl font-black text-white mb-8 tracking-tight drop-shadow-md">
+          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-5 py-2 rounded-full mb-6 border border-white/10">
+            <Building2 size={16} className="text-primary" />
+            <span className="text-white/80 text-sm font-bold">Rwanda's #1 Real Estate & Construction Platform</span>
+          </div>
+          <h1 className="text-4xl md:text-6xl font-black text-white mb-8 tracking-tight drop-shadow-lg">
             Rentals. Homes. <br className="md:hidden" /> Materials. Agents.
           </h1>
           
@@ -54,13 +135,18 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Recommendations Section (Zillow-like Style) */}
+      {/* Recommendations Section — uses REAL listing data */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
-              <p className="text-lg text-gray-600 mb-8 font-medium">
-                {isAuthenticated ? "Continue your journey from your dashboard." : "Sign in for a more personalized experience."}
+              <h2 className="text-3xl font-black text-dark mb-4 tracking-tight font-poppins">
+                Find Your <span className="text-primary">Perfect Home</span>
+              </h2>
+              <p className="text-lg text-gray-600 mb-8 font-medium leading-relaxed">
+                {isAuthenticated 
+                  ? "Continue your journey from your dashboard. Browse new listings, manage your bookings, and more." 
+                  : "Sign in for a more personalized experience. Get recommendations based on your preferences."}
               </p>
               <button 
                 onClick={() => navigate(isAuthenticated ? '/dashboard' : '/login')} 
@@ -71,16 +157,49 @@ const HomePage = () => {
             </div>
             
             <div className="relative">
-              <div className="bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden">
-                <img 
-                  src="https://images.unsplash.com/photo-1600585154340-be6199fbfd0b?auto=format&fit=crop&q=80&w=1000" 
-                  alt="Modern Home" 
-                  className="w-full h-56 object-cover"
-                />
+              {/* Show a REAL listing card */}
+              <div className="bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden cursor-pointer hover:shadow-3xl transition-shadow"
+                onClick={() => recommendedListing && navigate(`/listings/${recommendedListing.id}`)}>
+                
+                <div className="h-56 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                  {recommendedListing && getListingImage(recommendedListing) ? (
+                    <img 
+                      src={getListingImage(recommendedListing)} 
+                      alt={recommendedListing.title}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/5 to-blue-50">
+                      <Home size={48} className="text-primary/30" />
+                    </div>
+                  )}
+                </div>
+
                 <div className="p-6">
-                  <div className="text-2xl font-black text-dark">$695,000</div>
-                  <div className="text-gray-500 font-medium">4 bd | 3 ba | 2,132 sqft - House for sale</div>
-                  <div className="text-gray-400 text-sm mt-1">2106 Lakeview Ct, Mahomet, IL 61853</div>
+                  {recommendedListing ? (
+                    <>
+                      <div className="text-2xl font-black text-dark">
+                        {Number(recommendedListing.price).toLocaleString()} RWF
+                        {recommendedListing.type === 'rent' && <span className="text-sm font-bold text-gray-400">/mo</span>}
+                      </div>
+                      <div className="text-gray-500 font-medium mt-1">
+                        {recommendedListing.category === 'house' && (
+                          <>{recommendedListing.bedrooms} bd | {recommendedListing.bathrooms} ba | </>
+                        )}
+                        {recommendedListing.size && `${recommendedListing.size} — `}
+                        {recommendedListing.propertyType || recommendedListing.category} for {recommendedListing.type}
+                      </div>
+                      <div className="text-gray-400 text-sm mt-1 flex items-center gap-1">
+                        <MapPin size={14} />
+                        {recommendedListing.location}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-2xl font-black text-dark">Browse Listings</div>
+                      <div className="text-gray-500 font-medium">Explore houses, land, and materials near you</div>
+                    </>
+                  )}
                 </div>
               </div>
               
@@ -122,43 +241,92 @@ const HomePage = () => {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {listings?.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} />
-            ))}
-          </div>
+          {listings?.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {listings?.slice(0, 4).map((listing) => (
+                <ListingCard key={listing.id} listing={listing} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-gray-200">
+              <Home size={48} className="mx-auto text-gray-300 mb-4" />
+              <h3 className="text-lg font-bold text-dark mb-2">No Listings Yet</h3>
+              <p className="text-gray-400 mb-6">Be the first to add a property or material!</p>
+              <button onClick={() => navigate(isAuthenticated ? '/dashboard/add-listing' : '/register')} 
+                className="btn-primary px-8 py-3 rounded-xl">
+                {isAuthenticated ? 'Add Listing' : 'Get Started'}
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
       {/* Construction Materials Section */}
-      <section className="py-24 bg-white border-t border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row items-center gap-16">
-            <div className="md:w-1/2 rounded-3xl overflow-hidden shadow-2xl">
-              <img 
-                src="https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&q=80&w=1000" 
-                alt="Materials" 
-                className="w-full h-[400px] object-cover"
-              />
-            </div>
-            <div className="md:w-1/2">
-              <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary mb-6">
-                <Hammer size={24} />
+      {(() => {
+        const materialListing = listings?.find(l => l.category === 'material');
+        const materialImage = materialListing && getListingImage(materialListing);
+        return (
+          <section className="py-24 bg-white border-t border-gray-100">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex flex-col md:flex-row items-center gap-16">
+                <div className="md:w-1/2 rounded-3xl overflow-hidden shadow-2xl h-[400px] relative group cursor-pointer"
+                  onClick={() => materialListing && navigate(`/listings/${materialListing.id}`)}>
+                  {materialImage ? (
+                    <>
+                      <img 
+                        src={materialImage} 
+                        alt={materialListing.title} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                      <div className="absolute bottom-6 left-6 right-6">
+                        <span className="bg-primary text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full">Material</span>
+                        <h3 className="text-xl font-black text-white mt-2 drop-shadow-lg">{materialListing.title}</h3>
+                        <p className="text-white/70 text-sm font-medium flex items-center gap-1 mt-1">
+                          <MapPin size={12} /> {materialListing.location}
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-amber-50 to-orange-50 flex items-center justify-center">
+                      <div className="text-center p-12">
+                        <div className="w-24 h-24 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mx-auto mb-6">
+                          <Hammer size={48} />
+                        </div>
+                        <h3 className="text-2xl font-black text-dark mb-2">Quality Materials</h3>
+                        <p className="text-gray-500 font-medium">Cement • Steel • Bricks • Tiles • Sand</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="md:w-1/2">
+                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary mb-6">
+                    <Hammer size={24} />
+                  </div>
+                  <h2 className="text-4xl font-black text-dark mb-6 tracking-tight">Everything for your <span className="text-primary">Construction</span> needs</h2>
+                  <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+                    From cement and steel to tiles and decor. Find the best quality materials at competitive prices from verified suppliers across the country.
+                  </p>
+                  <button 
+                    onClick={() => navigate('/listings?category=material')}
+                    className="btn-primary px-10 py-4 rounded-md shadow-lg shadow-primary/20"
+                  >
+                    Browse Materials
+                  </button>
+                </div>
               </div>
-              <h2 className="text-4xl font-black text-dark mb-6 tracking-tight">Everything for your <span className="text-primary">Construction</span> needs</h2>
-              <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-                From cement and steel to tiles and decor. Find the best quality materials at competitive prices from verified suppliers across the country.
-              </p>
-              <button 
-                onClick={() => navigate('/listings?category=material')}
-                className="btn-primary px-10 py-4 rounded-md shadow-lg shadow-primary/20"
-              >
-                Browse Materials
-              </button>
             </div>
-          </div>
-        </div>
-      </section>
+          </section>
+        );
+      })()}
+
+      {/* CSS animation for hero zoom */}
+      <style>{`
+        @keyframes heroZoom {
+          0% { transform: scale(1.05); }
+          100% { transform: scale(1.15); }
+        }
+      `}</style>
     </MainLayout>
   );
 };
