@@ -1,12 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, Bed, Bath, Move, Tag } from 'lucide-react';
+import { BACKEND_URL } from '../services/api';
 
 const ListingCard = ({ listing }) => {
   const { id, title, price, location, type, category, bedrooms, bathrooms, size, images } = listing;
   
   const mainImage = images && images.length > 0 
-    ? (images[0].imageUrl.startsWith('http') ? images[0].imageUrl : `http://localhost:5000${images[0].imageUrl}`)
+    ? (images[0].imageUrl.startsWith('http') ? images[0].imageUrl : `${BACKEND_URL}${images[0].imageUrl}`)
     : 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&q=80&w=800';
 
   return (

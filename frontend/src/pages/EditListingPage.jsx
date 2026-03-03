@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Upload, X, Plus, MapPin, Tag, Box, Home, Landmark, Layers, Bath, BedDouble, Maximize2, Building2, ChevronDown, ExternalLink, ArrowLeft, Save } from 'lucide-react';
 import { useListingStore } from '../store/listingStore';
 import { useAuthStore } from '../store/authStore';
-import api from '../services/api';
+import api, { BACKEND_URL } from '../services/api';
 
 const EditListingPage = () => {
   const { id } = useParams();
@@ -274,7 +274,7 @@ const EditListingPage = () => {
               <div className="grid grid-cols-3 gap-4">
                 {existingImages.map((img, i) => (
                   <div key={i} className="aspect-video rounded-2xl overflow-hidden border-2 border-gray-100 bg-gray-50 relative">
-                    <img src={img.imageUrl?.startsWith('http') ? img.imageUrl : `http://localhost:5000${img.imageUrl}`} alt="" className="w-full h-full object-cover" />
+                    <img src={img.imageUrl?.startsWith('http') ? img.imageUrl : `${BACKEND_URL}${img.imageUrl}`} alt="" className="w-full h-full object-cover" />
                     {i === 0 && <div className="absolute bottom-2 left-2 bg-primary text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase">Cover</div>}
                   </div>
                 ))}

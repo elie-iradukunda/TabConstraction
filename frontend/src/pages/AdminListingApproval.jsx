@@ -11,6 +11,7 @@ import {
   Tag
 } from 'lucide-react';
 import { listingService } from '../services/listingService';
+import { BACKEND_URL } from '../services/api';
 
 const AdminListingApproval = () => {
   const [listings, setListings] = useState([]);
@@ -222,7 +223,7 @@ const AdminListingApproval = () => {
                  <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 gap-3 md:gap-4 font-poppins">
                     {selectedListing.images && selectedListing.images.length > 0 ? selectedListing.images.map((img, i) => (
                       <div key={i} className="aspect-square rounded-2xl overflow-hidden border border-gray-100 shadow-sm transition-transform hover:scale-105 cursor-pointer">
-                         <img src={img.imageUrl.startsWith('http') ? img.imageUrl : `http://localhost:5000${img.imageUrl}`} alt="property" className="w-full h-full object-cover" />
+                         <img src={img.imageUrl.startsWith('http') ? img.imageUrl : `${BACKEND_URL}${img.imageUrl}`} alt="property" className="w-full h-full object-cover" />
                       </div>
                     )) : (
                       <div className="col-span-full py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200 text-center text-gray-400 font-bold text-xs uppercase tracking-widest">

@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useListingStore } from '../store/listingStore';
 import { Edit, Trash2, ExternalLink, Plus, Package, MapPin, Tag } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { BACKEND_URL } from '../services/api';
 
 const statusStyle = (status) => ({
   active:   'bg-green-100 text-green-700',
@@ -71,7 +72,7 @@ const MyListings = ({ adminView = false }) => {
                   <div className="w-20 h-20 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
                     <img
                       src={listing.images?.[0]?.imageUrl
-                        ? (listing.images[0].imageUrl.startsWith('http') ? listing.images[0].imageUrl : `http://localhost:5000${listing.images[0].imageUrl}`)
+                        ? (listing.images[0].imageUrl.startsWith('http') ? listing.images[0].imageUrl : `${BACKEND_URL}${listing.images[0].imageUrl}`)
                         : 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&q=80&w=150'}
                       alt={listing.title}
                       className="w-full h-full object-cover"
@@ -133,7 +134,7 @@ const MyListings = ({ adminView = false }) => {
                           <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0 shadow-sm">
                             <img
                               src={listing.images?.[0]?.imageUrl
-                                ? (listing.images[0].imageUrl.startsWith('http') ? listing.images[0].imageUrl : `http://localhost:5000${listing.images[0].imageUrl}`)
+                                ? (listing.images[0].imageUrl.startsWith('http') ? listing.images[0].imageUrl : `${BACKEND_URL}${listing.images[0].imageUrl}`)
                                 : 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&q=80&w=150'}
                               alt={listing.title}
                               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"

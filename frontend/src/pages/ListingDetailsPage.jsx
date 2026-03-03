@@ -4,7 +4,7 @@ import { MapPin, Bed, Bath, Move, Share2, Heart, Phone, Mail, User, ChevronLeft,
 import { useListingStore } from '../store/listingStore';
 import { useAuthStore } from '../store/authStore';
 import MainLayout from '../layouts/MainLayout';
-import api from '../services/api';
+import api, { BACKEND_URL } from '../services/api';
 
 const ListingDetailsPage = () => {
   const { id } = useParams();
@@ -104,7 +104,7 @@ const ListingDetailsPage = () => {
   const { title, price, location, description, type, category, bedrooms, bathrooms, size, images, owner, createdAt } = selectedListing;
   
   const allImages = images && images.length > 0 
-    ? images.map(img => img.imageUrl.startsWith('http') ? img.imageUrl : `http://localhost:5000${img.imageUrl}`)
+    ? images.map(img => img.imageUrl.startsWith('http') ? img.imageUrl : `${BACKEND_URL}${img.imageUrl}`)
     : ['https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&q=80&w=1200'];
 
   return (
