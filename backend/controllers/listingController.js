@@ -103,7 +103,9 @@ const createListing = async (req, res) => {
 
     if (req.files && req.files.length > 0) {
       const images = req.files.map(file => ({
-        imageUrl: file.path, // Cloudinary returns the full URL in file.path
+        // If Cloudinary is used, file.path is the URL. 
+        // If Local is used, we want to save /uploads/filename
+        imageUrl: file.path.startsWith('http') ? file.path : `/uploads/${file.filename}`,
         listingId: listing.id
       }));
       await Image.bulkCreate(images);
@@ -115,15 +117,14 @@ const createListing = async (req, res) => {
 
     res.status(201).json({ success: true, listing: createdListing });
   } catch (error) {
-    const msg = error?.message || error?.original?.message || JSON.stringify(error);
-    console.error('Create listing error:', msg, error?.original || '');
-    res.status(500).json({ message: msg });
+    console.error('Create listing error:', error);
+    res.status(500).json({ message: error.message });
   }
 };
 
 const updateListing = async (req, res) => {
   try {
-    let listing = await Listing.findByPk(req.params.id);
+    const listing = await Listing.findByPk(req.params.id);
 
     if (!listing) {
       return res.status(404).json({ message: 'Listing not found' });
@@ -135,58 +136,37 @@ const updateListing = async (req, res) => {
     }
 
     // Parse features if sent as JSON string from FormData
-    let updateData = { ...req.body };
-    if (updateData.features && typeof updateData.features === 'string') {
-      try { updateData.features = JSON.parse(updateData.features); } catch (e) { /* keep as-is */ }
+    let features = [];
+    if (req.body.features && typeof req.body.features === 'string') {
+      try { features = JSON.parse(req.body.features); } catch (e) { features = []; }
+    } else if (Array.isArray(req.body.features)) {
+      features = req.body.features;
+    } else {
+      features = listing.features; // Keep existing if not provided
     }
 
-    // Handle deletion of existing images
-    if (req.body.deletedImages) {
-      let deletedImageIds = [];
-      try { deletedImageIds = JSON.parse(req.body.deletedImages); } catch (e) { deletedImageIds = []; }
+    // Explicitly pick fields to update to avoid issues with extraneous FormData fields
+    const updateData = {
+      title:        req.body.title || listing.title,
+      description:  req.body.description || listing.description,
+      price:        req.body.price ? parseFloat(req.body.price) : listing.price,
+      location:     req.body.location || listing.location,
+      type:         req.body.type || listing.type,
+      category:     req.body.category || listing.category,
+      propertyType: req.body.propertyType !== undefined ? req.body.propertyType : listing.propertyType,
+      bedrooms:     req.body.bedrooms !== undefined ? parseInt(req.body.bedrooms) : listing.bedrooms,
+      bathrooms:    req.body.bathrooms !== undefined ? parseInt(req.body.bathrooms) : listing.bathrooms,
+      size:         req.body.size !== undefined ? req.body.size : listing.size,
+      mapLink:      req.body.mapLink !== undefined ? req.body.mapLink : listing.mapLink,
+      features,
+    };
 
-      if (deletedImageIds.length > 0) {
-        // Find the images to delete
-        const imagesToDelete = await Image.findAll({
-          where: { id: { [Op.in]: deletedImageIds }, listingId: listing.id }
-        });
+    await listing.update(updateData);
 
-        // Delete from Cloudinary
-        for (const img of imagesToDelete) {
-          try {
-            // Extract public_id from Cloudinary URL
-            const url = img.imageUrl;
-            if (url && url.includes('cloudinary.com')) {
-              const parts = url.split('/');
-              const uploadIndex = parts.indexOf('upload');
-              if (uploadIndex !== -1) {
-                // public_id is everything after /upload/v{version}/
-                const afterUpload = parts.slice(uploadIndex + 2).join('/');
-                const publicId = afterUpload.replace(/\.[^/.]+$/, ''); // remove extension
-                await cloudinary.uploader.destroy(publicId);
-              }
-            }
-          } catch (cloudErr) {
-            console.error('Cloudinary delete error:', cloudErr.message);
-          }
-        }
-
-        // Delete from database
-        await Image.destroy({
-          where: { id: { [Op.in]: deletedImageIds }, listingId: listing.id }
-        });
-      }
-    }
-
-    // Remove non-model fields before update
-    delete updateData.deletedImages;
-    delete updateData.images;
-
-    listing = await listing.update(updateData);
-
+    // Handle new images if any
     if (req.files && req.files.length > 0) {
       const images = req.files.map(file => ({
-        imageUrl: file.path, // Cloudinary returns the full URL in file.path
+        imageUrl: file.path.startsWith('http') ? file.path : `/uploads/${file.filename}`,
         listingId: listing.id
       }));
       await Image.bulkCreate(images);
@@ -198,6 +178,7 @@ const updateListing = async (req, res) => {
 
     res.json({ success: true, listing: updatedListing });
   } catch (error) {
+    console.error('Update Listing Error:', error);
     res.status(500).json({ message: error.message });
   }
 };
