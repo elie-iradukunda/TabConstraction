@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Upload, X, Plus, MapPin, Tag, Box, Home, Landmark, Layers, Bath, BedDouble, Maximize2, Building2, ChevronDown, ExternalLink, ArrowLeft, Save } from 'lucide-react';
+import { Upload, X, Plus, MapPin, Tag, Box, Home, Landmark, Layers, Bath, BedDouble, Maximize2, Building2, ChevronDown, ExternalLink, ArrowLeft, Save, Trash2 } from 'lucide-react';
 import { useListingStore } from '../store/listingStore';
 import { useAuthStore } from '../store/authStore';
+import { listingService } from '../services/listingService';
 import api, { BACKEND_URL } from '../services/api';
 
 const EditListingPage = () => {
@@ -21,7 +22,9 @@ const EditListingPage = () => {
   const [newImages, setNewImages] = useState([]);
   const [newPreviews, setNewPreviews] = useState([]);
   const [existingImages, setExistingImages] = useState([]);
+  const [deletedImageIds, setDeletedImageIds] = useState([]);
   const [localLoading, setLocalLoading] = useState(false);
+  const [deletingImageId, setDeletingImageId] = useState(null);
   const [submitError, setSubmitError] = useState('');
   const [pageLoading, setPageLoading] = useState(true);
 
@@ -52,6 +55,7 @@ const EditListingPage = () => {
       if (typeof feats === 'string') { try { feats = JSON.parse(feats); } catch { feats = []; } }
       setFeatures(Array.isArray(feats) ? feats : []);
       setExistingImages(selectedListing.images || []);
+      setDeletedImageIds([]);
     }
   }, [selectedListing, id]);
 
@@ -65,6 +69,20 @@ const EditListingPage = () => {
   const removeNewImage = (i) => {
     setNewImages(newImages.filter((_, idx) => idx !== i));
     setNewPreviews(newPreviews.filter((_, idx) => idx !== i));
+  };
+
+  const handleDeleteExistingImage = async (imageId) => {
+    if (!confirm('Are you sure you want to delete this image? This cannot be undone.')) return;
+    
+    setDeletingImageId(imageId);
+    try {
+      await listingService.deleteImage(imageId);
+      setExistingImages(prev => prev.filter(img => img.id !== imageId));
+    } catch (err) {
+      alert(err?.response?.data?.message || 'Failed to delete image.');
+    } finally {
+      setDeletingImageId(null);
+    }
   };
 
   const addFeature = () => {
@@ -114,6 +132,14 @@ const EditListingPage = () => {
       </div>
     );
   }
+
+  // Helper to get image src - supports both old local paths and new Cloudinary URLs
+  const getImageSrc = (img) => {
+    const url = img.imageUrl;
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    return `${BACKEND_URL}${url}`;
+  };
 
   return (
     <div>
@@ -267,19 +293,38 @@ const EditListingPage = () => {
             </div>
           </div>
 
-          {/* EXISTING IMAGES */}
+          {/* EXISTING IMAGES — with delete buttons */}
           {existingImages.length > 0 && (
             <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
-              <h2 className="text-sm font-black text-dark uppercase tracking-widest mb-6">Current Photos</h2>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-sm font-black text-dark uppercase tracking-widest">Current Photos</h2>
+                <span className="text-xs text-gray-400 font-bold">{existingImages.length} photo{existingImages.length !== 1 ? 's' : ''}</span>
+              </div>
               <div className="grid grid-cols-3 gap-4">
                 {existingImages.map((img, i) => (
-                  <div key={i} className="aspect-video rounded-2xl overflow-hidden border-2 border-gray-100 bg-gray-50 relative">
-                    <img src={img.imageUrl?.startsWith('http') ? img.imageUrl : `${BACKEND_URL}${img.imageUrl}`} alt="" className="w-full h-full object-cover" />
+                  <div key={img.id || i} className="aspect-video rounded-2xl overflow-hidden border-2 border-gray-100 bg-gray-50 relative group">
+                    <img src={getImageSrc(img)} alt="" className="w-full h-full object-cover" />
                     {i === 0 && <div className="absolute bottom-2 left-2 bg-primary text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase">Cover</div>}
+                    {/* Delete button overlay */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-200 flex items-center justify-center">
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteExistingImage(img.id)}
+                        disabled={deletingImageId === img.id}
+                        className="opacity-0 group-hover:opacity-100 transition-all duration-200 bg-red-500 hover:bg-red-600 text-white rounded-xl px-4 py-2 flex items-center gap-2 text-xs font-black shadow-lg disabled:opacity-50"
+                      >
+                        {deletingImageId === img.id ? (
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                          <Trash2 size={14} />
+                        )}
+                        {deletingImageId === img.id ? 'Deleting...' : 'Delete'}
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-gray-400 font-bold mt-4">Add new photos below to supplement these images.</p>
+              <p className="text-xs text-gray-400 font-bold mt-4">Hover over an image to delete it. Add new photos below.</p>
             </div>
           )}
 
@@ -363,6 +408,10 @@ const EditListingPage = () => {
                   <span className="font-black text-primary">${Number(formData.price).toLocaleString()}{formData.type === 'rent' ? '/mo' : ''}</span>
                 </div>
               )}
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-400 font-bold">Images</span>
+                <span className="font-black text-dark">{existingImages.length + newImages.length}</span>
+              </div>
             </div>
 
             <button type="submit" disabled={localLoading}

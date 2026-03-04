@@ -6,6 +6,7 @@ const {
   createListing,
   updateListing,
   deleteListing,
+  deleteImage,
   getMyListings,
   getAdminListings,
   updateListingStatus,
@@ -22,6 +23,7 @@ router.get('/:id', getListing);
 router.post('/', protect, upload.array('images', 5), createListing);
 router.put('/:id', protect, upload.array('images', 5), updateListing);
 router.patch('/:id/status', protect, authorize('admin', 'manager'), updateListingStatus);
+router.delete('/images/:imageId', protect, deleteImage);
 router.delete('/:id', protect, deleteListing);
 
 module.exports = router;

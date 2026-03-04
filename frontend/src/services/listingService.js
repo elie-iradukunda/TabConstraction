@@ -45,4 +45,8 @@ export const listingService = {
     const response = await api.get('/listings/stats');
     return response.data;
   },
+  deleteImage: async (imageId) => {
+    const response = await api.delete(`/listings/images/${imageId}`);
+    return response.data;
+  },
 };

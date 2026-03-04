@@ -1,5 +1,6 @@
 const { Listing, Image, User } = require('../models');
 const { Op } = require('sequelize');
+const cloudinary = require('../config/cloudinary');
 
 const getListings = async (req, res) => {
   try {
@@ -102,7 +103,7 @@ const createListing = async (req, res) => {
 
     if (req.files && req.files.length > 0) {
       const images = req.files.map(file => ({
-        imageUrl: `/uploads/${file.filename}`,
+        imageUrl: file.path, // Cloudinary returns the full URL in file.path
         listingId: listing.id
       }));
       await Image.bulkCreate(images);
@@ -133,11 +134,59 @@ const updateListing = async (req, res) => {
       return res.status(401).json({ message: 'User not authorized to update this listing' });
     }
 
-    listing = await listing.update(req.body);
+    // Parse features if sent as JSON string from FormData
+    let updateData = { ...req.body };
+    if (updateData.features && typeof updateData.features === 'string') {
+      try { updateData.features = JSON.parse(updateData.features); } catch (e) { /* keep as-is */ }
+    }
+
+    // Handle deletion of existing images
+    if (req.body.deletedImages) {
+      let deletedImageIds = [];
+      try { deletedImageIds = JSON.parse(req.body.deletedImages); } catch (e) { deletedImageIds = []; }
+
+      if (deletedImageIds.length > 0) {
+        // Find the images to delete
+        const imagesToDelete = await Image.findAll({
+          where: { id: { [Op.in]: deletedImageIds }, listingId: listing.id }
+        });
+
+        // Delete from Cloudinary
+        for (const img of imagesToDelete) {
+          try {
+            // Extract public_id from Cloudinary URL
+            const url = img.imageUrl;
+            if (url && url.includes('cloudinary.com')) {
+              const parts = url.split('/');
+              const uploadIndex = parts.indexOf('upload');
+              if (uploadIndex !== -1) {
+                // public_id is everything after /upload/v{version}/
+                const afterUpload = parts.slice(uploadIndex + 2).join('/');
+                const publicId = afterUpload.replace(/\.[^/.]+$/, ''); // remove extension
+                await cloudinary.uploader.destroy(publicId);
+              }
+            }
+          } catch (cloudErr) {
+            console.error('Cloudinary delete error:', cloudErr.message);
+          }
+        }
+
+        // Delete from database
+        await Image.destroy({
+          where: { id: { [Op.in]: deletedImageIds }, listingId: listing.id }
+        });
+      }
+    }
+
+    // Remove non-model fields before update
+    delete updateData.deletedImages;
+    delete updateData.images;
+
+    listing = await listing.update(updateData);
 
     if (req.files && req.files.length > 0) {
       const images = req.files.map(file => ({
-        imageUrl: `/uploads/${file.filename}`,
+        imageUrl: file.path, // Cloudinary returns the full URL in file.path
         listingId: listing.id
       }));
       await Image.bulkCreate(images);
@@ -155,7 +204,9 @@ const updateListing = async (req, res) => {
 
 const deleteListing = async (req, res) => {
   try {
-    const listing = await Listing.findByPk(req.params.id);
+    const listing = await Listing.findByPk(req.params.id, {
+      include: [{ model: Image, as: 'images' }]
+    });
 
     if (!listing) {
       return res.status(404).json({ message: 'Listing not found' });
@@ -165,9 +216,70 @@ const deleteListing = async (req, res) => {
       return res.status(401).json({ message: 'User not authorized to delete this listing' });
     }
 
+    // Clean up Cloudinary images when deleting a listing
+    if (listing.images && listing.images.length > 0) {
+      for (const img of listing.images) {
+        try {
+          const url = img.imageUrl;
+          if (url && url.includes('cloudinary.com')) {
+            const parts = url.split('/');
+            const uploadIndex = parts.indexOf('upload');
+            if (uploadIndex !== -1) {
+              const afterUpload = parts.slice(uploadIndex + 2).join('/');
+              const publicId = afterUpload.replace(/\.[^/.]+$/, '');
+              await cloudinary.uploader.destroy(publicId);
+            }
+          }
+        } catch (cloudErr) {
+          console.error('Cloudinary delete error:', cloudErr.message);
+        }
+      }
+    }
+
     await listing.destroy();
 
     res.json({ success: true, message: 'Listing removed' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const deleteImage = async (req, res) => {
+  try {
+    const image = await Image.findByPk(req.params.imageId);
+
+    if (!image) {
+      return res.status(404).json({ message: 'Image not found' });
+    }
+
+    // Verify the user owns the listing this image belongs to
+    const listing = await Listing.findByPk(image.listingId);
+    if (!listing) {
+      return res.status(404).json({ message: 'Listing not found' });
+    }
+    if (listing.userId !== req.user.id && req.user.role !== 'admin') {
+      return res.status(401).json({ message: 'Not authorized to delete this image' });
+    }
+
+    // Delete from Cloudinary
+    try {
+      const url = image.imageUrl;
+      if (url && url.includes('cloudinary.com')) {
+        const parts = url.split('/');
+        const uploadIndex = parts.indexOf('upload');
+        if (uploadIndex !== -1) {
+          const afterUpload = parts.slice(uploadIndex + 2).join('/');
+          const publicId = afterUpload.replace(/\.[^/.]+$/, '');
+          await cloudinary.uploader.destroy(publicId);
+        }
+      }
+    } catch (cloudErr) {
+      console.error('Cloudinary delete error:', cloudErr.message);
+    }
+
+    await image.destroy();
+
+    res.json({ success: true, message: 'Image deleted' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -276,6 +388,7 @@ module.exports = {
   createListing,
   updateListing,
   deleteListing,
+  deleteImage,
   getMyListings,
   getAdminListings,
   updateListingStatus,
